@@ -1,5 +1,4 @@
-﻿//AMP FiveM Module - See LICENCE.txt
-//©2017 CubeCoders Limited - All rights reserved.
+﻿//AMP FiveM Module - See LICENCE
 
 using ModuleShared;
 using System.Collections.Generic;
@@ -38,10 +37,15 @@ namespace FiveMModule
         {
             app = new FiveMApp(this);
             Application = app;
-            APIMethods = new WebMethods(this);
+            APIMethods = null;
         }
 
         public override bool HasFrontendContent => false;
+
+        public override void PostInit()
+        {
+            //Don't used!
+        }
 
         //Lets AMP know where are settings are being stored. You can have multiple setting stores but this generally isn't used.
         public override IEnumerable<SettingStore> SettingStores => new List<SettingStore>() { settings };

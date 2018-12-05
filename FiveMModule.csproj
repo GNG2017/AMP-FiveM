@@ -78,17 +78,14 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="FiveMApp.cs" />
     <Compile Include="FiveMConfig.cs" />
-    <Compile Include="WebMethods.cs" />
   </ItemGroup>
   <ItemGroup>
     <WCFMetadata Include="Service References\" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>xcopy "$(TargetDir)*" "Z:\Instances\Test\" /Y</PostBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

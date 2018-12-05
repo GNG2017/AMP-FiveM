@@ -1,5 +1,4 @@
-﻿//AMP FiveM Module - See LICENCE.txt
-//©2017 CubeCoders Limited - All rights reserved.
+﻿//AMP FiveM Module - See LICENCE
 
 using ModuleShared;
 using System;
