@@ -6,7 +6,7 @@ using System.IO;
 
 namespace FiveMModule
 {
-    [AMPDependency(nameof(RCONClientPlugin))]
+    [AMPDependency(nameof(RCONPlugin))]
     public class ModuleMain : AppModule
     {
         internal ILogger log;                  //Provides logging, you must use this - never do Console.WriteLine directly.

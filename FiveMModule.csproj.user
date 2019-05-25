@@ -3,4 +3,14 @@
   <PropertyGroup>
     <ProjectView>ProjectFiles</ProjectView>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|AnyCPU'">
+    <StartAction>Program</StartAction>
+    <StartProgram>D:\AMPDatastore\Instances\Test\AMP.exe</StartProgram>
+    <StartWorkingDirectory>D:\AMPDatastore\Instances\Test\</StartWorkingDirectory>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
+    <StartAction>Program</StartAction>
+    <StartProgram>D:\AMPDatastore\Instances\Test\AMP.exe</StartProgram>
+    <StartWorkingDirectory>D:\AMPDatastore\Instances\Test\</StartWorkingDirectory>
+  </PropertyGroup>
 </Project>

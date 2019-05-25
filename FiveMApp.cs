@@ -2,13 +2,14 @@
 
 using Ionic.Zip;
 using ModuleShared;
-using RCONClientPlugin;
+using RCONPlugin;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace FiveMModule
@@ -17,20 +18,20 @@ namespace FiveMModule
     //with the MessageHandler attribute and use them to process messages according to their regex when you use ProcessOutput.
     public class FiveMApp : AppServerBase, IApplicationWrapper, IHasReadableConsole, IHasWriteableConsole
     {
-        private ModuleMain module;
+        private readonly ModuleMain module;
         public new AMPProcess ApplicationProcess { get; private set; }
 
         private const int consoleBackscrollLength = 40;
 
         public FiveMApp(ModuleMain module) => this.module = module;
 
-        private readonly Dictionary<SupportedOS, string> SRCDSAppPath = new Dictionary<SupportedOS, string>()
+        private readonly Dictionary<SupportedOS, string> FXServerAppPath = new Dictionary<SupportedOS, string>()
         {
             { SupportedOS.Windows, "FXServer.exe" }
         };
 
         private string WorkingDir => Path.Combine(module.settings.FiveM.GamePath, @".\server-data\");
-        private string ServerFile => Path.Combine(module.settings.FiveM.GamePath, SRCDSAppPath[module.os]);
+        private string ServerFile => Path.Combine( module.settings.FiveM.GamePath, FXServerAppPath[module.os]);
 
         public bool IsGameServerInstalled() => File.Exists(ServerFile);
 
@@ -90,25 +91,19 @@ namespace FiveMModule
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 WorkingDirectory = WorkingDir,
-                FileName = ServerFile,
+                FileName = (ServerFile),
                 Arguments = string.Join(" ", Arguments),
             };
 
             ApplicationProcess.EnableRaisingEvents = true;
             ApplicationProcess.Exited += ApplicationProcess_Exited;
             ApplicationProcess.OutputDataReceived += ApplicationProcess_OutputDataReceived;
-            ApplicationProcess.ErrorDataReceived += ApplicationProcess_ErrorDataReceived; ;
+            ApplicationProcess.ErrorDataReceived += ApplicationProcess_ErrorDataReceived;
         }
 
-        private void ApplicationProcess_ErrorDataReceived(object sender, DataReceivedEventArgs e)
-        {
-            ProcessMessage(e.Data, "ERROR");
-        }
+        private void ApplicationProcess_ErrorDataReceived(object sender, DataReceivedEventArgs e) => ProcessMessage(e.Data, "ERROR");
 
-        private void ApplicationProcess_OutputDataReceived(object sender, DataReceivedEventArgs e)
-        {
-            ProcessMessage(e.Data);
-        }
+        private void ApplicationProcess_OutputDataReceived(object sender, DataReceivedEventArgs e) => ProcessMessage(e.Data);
 
         private void ApplicationProcess_Exited(object sender, EventArgs e)
         {
@@ -220,7 +215,6 @@ namespace FiveMModule
                 //Once we're connected, the application can transition to the Ready state - even if auth failed (but this stops the console being usable)
                 if (connectResult && authResult)
                 {
-                    //PostMessage("chat.serverlog true");
                     module.log.Info("RCON connection successful.");
                     State = ApplicationState.Ready;
                 }
@@ -302,18 +296,12 @@ namespace FiveMModule
         }
 
         [ScheduleableTask("Stop the FiveM server")]
-        public void Stop()
-        {
-            StopApplication(false);
-        }
+        public void Stop() => StopApplication(false);
 
         public ActionResult Sleep() => throw new NotImplementedException();
 
         [ScheduleableTask("Restart the FiveM server")]
-        public void Restart()
-        {
-            StopApplication(true);
-        }
+        public void Restart() => StopApplication(true);
 
         public void StopApplication(bool andRestart = false)
         {
@@ -329,15 +317,21 @@ namespace FiveMModule
 
         public void Kill()
         {
-            if (this.State != ApplicationState.Stopped)
+            if (State != ApplicationState.Stopped)
             {
                 ApplicationProcess.Kill();
             }
         }
 
         #region Update Things
-        public struct FiveMVersion
+        public class FiveMVersion
         {
+            public FiveMVersion(string url, DateTime release)
+            {
+                Url = url;
+                Release = release;
+            }
+
             public string Url;
             public DateTime Release;
 
@@ -363,55 +357,57 @@ namespace FiveMModule
 
         }
 
+        private Regex UpdateUrlRegex = new Regex(@".*?(\d+\-[0-9a-z/]+).*?(\d+\-\D+\-\d+\s\d+\:\d+)");
+
         private async void UpdateTask()
         {
-            State = ApplicationState.Installing;
-
-            string page = await new WebClient().DownloadStringTaskAsync(new Uri("https://runtime.fivem.net/artifacts/fivem/build_server_windows/master/"));
-
-            var splitedpage = page.Split(new[] { Environment.NewLine }, StringSplitOptions.None).
-                Where(str => str.Contains("<a href=\"") && !str.Contains("Index")).Select(str => str.Split(' ').Where(item => !string.IsNullOrWhiteSpace(item)).ToArray()).ToArray();
-
-            List<FiveMVersion> Versions = new List<FiveMVersion>();
-            foreach (var listing in splitedpage)
+            try
             {
-                int FirstIndex = listing[1].IndexOf('"') + 1;
-                int SecondLenght = listing[1].IndexOf('"', FirstIndex + 1) - FirstIndex;
-                string url = listing[1].Substring(FirstIndex, SecondLenght);
-                DateTime date = Convert.ToDateTime(listing[2] + " " + listing[3]);
-                if (url != "revoked/")
-                    Versions.Add(new FiveMVersion() { Url = url, Release = date });
+                State = ApplicationState.Installing;
+
+                string page = await new WebClient().DownloadStringTaskAsync(new Uri("https://runtime.fivem.net/artifacts/fivem/build_server_windows/master/"));
+
+                var matches = page.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Where(str => str.Contains("<a href=") && !str.Contains("../") && !str.Contains("revoked/")).Select(str => UpdateUrlRegex.Match(str));
+
+                List<FiveMVersion> Versions = new List<FiveMVersion>();
+                foreach (var match in matches)
+                    if (match.Success)
+                        Versions.Add(new FiveMVersion(match.Groups[1].ToString(), DateTime.Parse(match.Groups[2].ToString())));
+
+                var Releases = Versions.OrderBy(ver => ver.Release).ToArray();
+
+                if (!Directory.Exists(module.settings.FiveM.UpdatesPath))
+                    Directory.CreateDirectory(module.settings.FiveM.UpdatesPath);
+
+                string filename = module.settings.FiveM.UpdatesPath + Releases.Last().Url.TrimEnd('/') + ".zip";
+                string foldername = module.settings.FiveM.UpdatesPath + Releases.Last().Url.TrimEnd('/');
+
+                var task = module.taskmgr.CreateTask("Downloading server files");
+
+                var succes = await Utilities.DownloadFileWithProgressAsync($"https://runtime.fivem.net/artifacts/fivem/build_server_windows/master/{Releases.Last().Url}server.zip", filename, task);
+
+                if (!succes)
+                {
+                    module.log.Error("Download failed!");
+                    return;
+                }
+
+                module.log.Debug("Unziping file...");
+                ZipFile ServerZip = new ZipFile(filename);
+                await ServerZip.ExtractAllAsync(foldername, ExtractExistingFileAction.OverwriteSilently);
+
+                module.log.Debug("Unzip complete, coping...");
+
+                Move(foldername, module.settings.FiveM.GamePath);
+
+                module.log.Debug("Update complete!");
+
+                State = ApplicationState.Stopped;
             }
-
-            var Releases = Versions.OrderBy(ver => ver.Release).ToArray();
-
-            if (!Directory.Exists(module.settings.FiveM.UpdatesPath))
-                Directory.CreateDirectory(module.settings.FiveM.UpdatesPath);
-
-            string filename = $"{module.settings.FiveM.UpdatesPath}{Releases.Last().Url.TrimEnd('/')}.zip";
-            string foldername = $"{module.settings.FiveM.UpdatesPath}{Releases.Last().Url.TrimEnd('/')}/";
-
-            var task = module.taskmgr.CreateTask("Downloading server files");
-
-            var succes = await Utilities.DownloadFileWithProgressAsync($"https://runtime.fivem.net/artifacts/fivem/build_server_windows/master/{Releases.Last().Url}server.zip", filename, task);
-
-            if (!succes)
+            catch (Exception ex)
             {
-                module.log.Error("Download failed!");
-                return;
+                module.log.Error($"Failed to the latest server version! Exception: {ex}");
             }
-
-            module.log.Debug("Unziping file...");
-            ZipFile ServerZip = new ZipFile(filename);
-            await ServerZip.ExtractAllAsync(foldername, ExtractExistingFileAction.OverwriteSilently);
-
-            module.log.Debug("Unzip complete, coping...");
-
-            Move(foldername, module.settings.FiveM.GamePath);
-
-            module.log.Debug("Update complete!");
-
-            State = ApplicationState.Stopped;
         }
 
         private void Move(string Source, string Destination)
@@ -496,11 +492,11 @@ namespace FiveMModule
 
         public string ApplicationName => "FiveM Dedicated Server";
 
-        public string ModuleName => "FiveM Module";
+        public string ModuleName => "FiveM";
 
-        public string ModuleAuthor => "[HUN]G.Nimród.G#7286";
+        public string ModuleAuthor => "[HUN]G.Nimrod.G#7286";
 
-        public SupportedOS SupportedOperatingSystems => SupportedOS.Windows | SupportedOS.Linux;
+        public SupportedOS SupportedOperatingSystems => SupportedOS.Windows;
 
         public bool CanRunVirtualized => true;
 
@@ -514,7 +510,9 @@ namespace FiveMModule
             return (consoleLines.Where(cl => cl.Timestamp > Since));
         }
 
+#pragma warning disable CS0108 // Member hides inherited member; missing new keyword
         public event EventHandler<CancelableEventArgs<ConsoleEntry>> ConsoleOutputRecieved;
+#pragma warning restore CS0108 // Member hides inherited member; missing new keyword
 
         private string RandomRCONPassword = "";
 

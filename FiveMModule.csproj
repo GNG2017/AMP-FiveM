@@ -56,14 +56,16 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="DotNetZip">
-      <HintPath>lib\DotNetZip.dll</HintPath>
+    <Reference Include="DotNetZip, Version=1.10.1.0, Culture=neutral, PublicKeyToken=6583c7c814667745, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>D:\AMPDatastore\Instances\Rust03\DotNetZip.dll</HintPath>
     </Reference>
-    <Reference Include="ModuleShared">
-      <HintPath>lib\ModuleShared.dll</HintPath>
+    <Reference Include="ModuleShared, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>D:\AMPDatastore\Instances\Rust03\ModuleShared.dll</HintPath>
     </Reference>
-    <Reference Include="RCONClientPlugin">
-      <HintPath>lib\RCONClientPlugin.dll</HintPath>
+    <Reference Include="RCONPlugin">
+      <HintPath>D:\AMPDatastore\Instances\Rust03\Plugins\RCONPlugin\RCONPlugin.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -84,8 +86,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>
-    </PostBuildEvent>
+    <PostBuildEvent>xcopy "$(TargetPath)" "D:\AMPDatastore\Instances\Test\Plugins\FiveMModule" /Y</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
