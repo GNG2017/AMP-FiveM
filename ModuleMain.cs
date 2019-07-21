@@ -22,11 +22,11 @@ namespace FiveMModule
         public ModuleMain(ILogger log, IConfigSerializer config, SupportedOS currentPlatform, IRunningTasksManager taskManager, IFeatureManager features)
         {
             this.log = log;
-            this.taskmgr = taskManager;
+            taskmgr = taskManager;
             this.config = config;
-            this.os = currentPlatform;
+            os = currentPlatform;
             this.features = features;
-            this.settings = config.Load<FiveMConfig>(); //This will also automatically save your settings for you when the user changes them. You don't need to do anything
+            settings = config.Load<FiveMConfig>(); //This will also automatically save your settings for you when the user changes them. You don't need to do anything
         }
 
         

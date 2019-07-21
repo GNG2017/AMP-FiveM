@@ -107,8 +107,8 @@ namespace FiveMModule
 
         private void ApplicationProcess_Exited(object sender, EventArgs e)
         {
-            var unexpectedStop = (this.State != ApplicationState.Stopping && this.State != ApplicationState.Restarting);
-            var needsRestart = (this.State == ApplicationState.Restarting);
+            var unexpectedStop = (State != ApplicationState.Stopping && State != ApplicationState.Restarting);
+            var needsRestart = (State == ApplicationState.Restarting);
 
             this.State = ApplicationState.Stopped;
 
