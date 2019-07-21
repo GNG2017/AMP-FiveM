@@ -2,7 +2,6 @@
 
 using ModuleShared;
 using System.Collections.Generic;
-using System.IO;
 
 namespace FiveMModule
 {
@@ -29,7 +28,7 @@ namespace FiveMModule
             settings = config.Load<FiveMConfig>(); //This will also automatically save your settings for you when the user changes them. You don't need to do anything
         }
 
-        
+
 
         //Init is called after all of the plugins/modules have been loaded. At this point you need to provide a reference to your application wrapper and any 
         //extra methods you want to expose to the API.

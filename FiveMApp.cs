@@ -31,7 +31,7 @@ namespace FiveMModule
         };
 
         private string WorkingDir => Path.Combine(module.settings.FiveM.GamePath, @".\server-data\");
-        private string ServerFile => Path.Combine( module.settings.FiveM.GamePath, FXServerAppPath[module.os]);
+        private string ServerFile => Path.Combine(module.settings.FiveM.GamePath, FXServerAppPath[module.os]);
 
         public bool IsGameServerInstalled() => File.Exists(ServerFile);
 
@@ -91,7 +91,7 @@ namespace FiveMModule
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 WorkingDirectory = WorkingDir,
-                FileName = (ServerFile),
+                FileName = ServerFile,
                 Arguments = string.Join(" ", Arguments),
             };
 
@@ -406,7 +406,7 @@ namespace FiveMModule
             }
             catch (Exception ex)
             {
-                module.log.Error($"Failed to the latest server version! Exception: {ex}");
+                module.log.Error($"Failed to update the server version! Exception: {ex}");
             }
         }
 
@@ -430,6 +430,9 @@ namespace FiveMModule
         private async void UpdateData()
         {
             module.log.Debug("Updating server-data...");
+            if (!Directory.Exists(module.settings.FiveM.UpdatesPath))
+                Directory.CreateDirectory(module.settings.FiveM.UpdatesPath);
+
             if (!Directory.Exists(Path.Combine(module.settings.FiveM.UpdatesPath, @".\server-data\")))
             {
                 module.log.Debug("Downloading cfx-server-data...");
@@ -446,7 +449,7 @@ namespace FiveMModule
             Move(Path.Combine(module.settings.FiveM.UpdatesPath, "server-data", "cfx-server-data-master"), module.settings.FiveM.DataPath);
         }
 
-        void FiveMApp_AutoUpdate(object sender, FiveMApp.ServerStoppedEventArgs e)
+        void FiveMApp_AutoUpdate(object sender, ServerStoppedEventArgs e)
         {
             this.NormalStop -= FiveMApp_AutoUpdate;
             Update();
